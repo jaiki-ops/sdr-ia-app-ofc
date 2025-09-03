@@ -1,0 +1,415 @@
+{
+  "name": "MUDA ETAPA IA TAG - DINÂMICO",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "muda-etapa-webhook",
+        "options": {}
+      },
+      "id": "webhook-muda-etapa",
+      "name": "Webhook Muda Etapa",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "muda-etapa-webhook-dinamico"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.webhook_data.webhook_url || 'https://sdria.alveseco.com.br/api/webhook/sdr' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "clienteId",
+              "value": "={{ $json.webhook_data.cliente_id || $json.cliente_id }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "webhook_data",
+              "value": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}"
+            },
+            {
+              "name": "action",
+              "value": "muda_etapa"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "buscar-config-cliente",
+      "name": "Buscar Configurações Cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair informações do webhook\nconst webhookData = $input.item.json.webhook_data;\nconst configuracoes = $('Buscar Configurações Cliente').item.json.configuracoes;\nconst tagsPermitidas = $('Buscar Configurações Cliente').item.json.tags_permitidas;\n\n// Determinar qual tag foi acionada\nlet tagAcionada = null;\nlet novoFunilId = null;\nlet novoPipelineId = null;\n\n// Verificar se a tag foi especificada diretamente\nif (webhookData.tag) {\n  tagAcionada = webhookData.tag;\n} else if (webhookData.message) {\n  // Buscar tag na mensagem\n  for (const tag of tagsPermitidas) {\n    if (webhookData.message.toLowerCase().includes(tag.toLowerCase())) {\n      tagAcionada = tag;\n      break;\n    }\n  }\n}\n\n// Buscar configurações da tag específica\n// Aqui você pode implementar lógica para buscar funil_id e pipeline_id\n// baseado na tag encontrada\n\nswitch(tagAcionada) {\n  case 'transfere_vendedor':\n    novoFunilId = configuracoes.funil_vendedor_id;\n    novoPipelineId = configuracoes.pipeline_id;\n    break;\n  case 'transfere_suporte':\n    novoFunilId = configuracoes.funil_suporte_id;\n    novoPipelineId = configuracoes.pipeline_id;\n    break;\n  case 'transfere_ligacao':\n    novoFunilId = configuracoes.funil_ligacao_id;\n    novoPipelineId = configuracoes.pipeline_id;\n    break;\n  default:\n    // Tag personalizada - buscar nas configurações do cliente\n    novoFunilId = webhookData.funil_id;\n    novoPipelineId = webhookData.pipeline_id;\n}\n\nreturn {\n  tag_acionada: tagAcionada,\n  novo_funil_id: novoFunilId,\n  novo_pipeline_id: novoPipelineId,\n  lead_id: webhookData.lead_id,\n  cliente_id: configuracoes.cliente_id,\n  kommo_token: configuracoes.kommo_token,\n  kommo_domain: configuracoes.kommo_domain\n};"
+      },
+      "id": "processar-mudanca-etapa",
+      "name": "Processar Mudança de Etapa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "validar-dados",
+              "leftValue": "={{ $json.tag_acionada && $json.novo_funil_id && $json.lead_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validar-dados-mudanca",
+      "name": "Validar Dados para Mudança",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.kommo_domain }}/api/v4/leads/{{ $json.lead_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "kommoApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $json.kommo_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "buscar-lead-atual",
+      "name": "Buscar Lead Atual",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Processar Mudança de Etapa').item.json.kommo_domain }}/api/v4/leads/{{ $('Processar Mudança de Etapa').item.json.lead_id }}",
+        "httpMethod": "PATCH",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "pipeline_id",
+              "value": "={{ $('Processar Mudança de Etapa').item.json.novo_pipeline_id }}"
+            },
+            {
+              "name": "status_id",
+              "value": "={{ $('Processar Mudança de Etapa').item.json.novo_funil_id }}"
+            },
+            {
+              "name": "updated_by",
+              "value": "0"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $('Processar Mudança de Etapa').item.json.kommo_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "atualizar-etapa-lead",
+      "name": "Atualizar Etapa do Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.kommo_domain }}/api/v4/leads/{{ $json.lead_id }}/notes",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "note_type",
+              "value": "common"
+            },
+            {
+              "name": "params",
+              "value": "={{ JSON.stringify({\n  text: `Lead movido automaticamente pela IA. Tag acionada: ${$('Processar Mudança de Etapa').item.json.tag_acionada}. Data: ${new Date().toLocaleString('pt-BR')}`\n}) }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $('Processar Mudança de Etapa').item.json.kommo_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "adicionar-nota-lead",
+      "name": "Adicionar Nota ao Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://sdria.alveseco.com.br/api/webhook/sdr",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "clienteId",
+              "value": "={{ $('Processar Mudança de Etapa').item.json.cliente_id }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "etapa_alterada"
+            },
+            {
+              "name": "lead_id",
+              "value": "={{ $('Processar Mudança de Etapa').item.json.lead_id }}"
+            },
+            {
+              "name": "tag_acionada",
+              "value": "={{ $('Processar Mudança de Etapa').item.json.tag_acionada }}"
+            },
+            {
+              "name": "novo_funil_id",
+              "value": "={{ $('Processar Mudança de Etapa').item.json.novo_funil_id }}"
+            },
+            {
+              "name": "status",
+              "value": "sucesso"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notificar-sucesso",
+      "name": "Notificar Sucesso",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1780,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://sdria.alveseco.com.br/api/webhook/sdr",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "clienteId",
+              "value": "={{ $('Processar Mudança de Etapa').item.json.cliente_id }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "erro_mudanca_etapa"
+            },
+            {
+              "name": "erro",
+              "value": "Dados insuficientes para mudança de etapa"
+            },
+            {
+              "name": "webhook_data",
+              "value": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notificar-erro",
+      "name": "Notificar Erro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1120,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Muda Etapa": {
+      "main": [
+        [
+          {
+            "node": "Buscar Configurações Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Configurações Cliente": {
+      "main": [
+        [
+          {
+            "node": "Processar Mudança de Etapa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Mudança de Etapa": {
+      "main": [
+        [
+          {
+            "node": "Validar Dados para Mudança",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Dados para Mudança": {
+      "main": [
+        [
+          {
+            "node": "Buscar Lead Atual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Lead Atual": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Etapa do Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Etapa do Lead": {
+      "main": [
+        [
+          {
+            "node": "Adicionar Nota ao Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adicionar Nota ao Lead": {
+      "main": [
+        [
+          {
+            "node": "Notificar Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-09T00:00:00.000Z",
+      "updatedAt": "2025-01-09T00:00:00.000Z",
+      "id": "muda-etapa-dinamico",
+      "name": "Muda Etapa Dinâmico"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-01-09T00:00:00.000Z",
+  "versionId": "dinamico-v1"
+}
+

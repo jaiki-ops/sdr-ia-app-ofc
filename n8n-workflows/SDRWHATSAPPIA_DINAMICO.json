@@ -1,0 +1,567 @@
+{
+  "name": "SDR WHATSAPP IA - DINÂMICO",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sdr-webhook",
+        "options": {}
+      },
+      "id": "webhook-inicial",
+      "name": "Webhook Inicial",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "sdr-webhook-dinamico"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.webhook_data.webhook_url || 'https://sdria.alveseco.com.br/api/webhook/sdr' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "clienteId",
+              "value": "={{ $json.webhook_data.cliente_id || $json.cliente_id }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "webhook_data",
+              "value": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "buscar-configuracoes",
+      "name": "Buscar Configurações Cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "usar-n8n-check",
+              "leftValue": "={{ $json.configuracoes.usar_n8n }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "verificar-n8n-habilitado",
+      "name": "Verificar N8N Habilitado",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Buscar Configurações Cliente').item.json.configuracoes.kommo_domain }}/api/v4/leads",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "kommoApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filter[pipeline_id]",
+              "value": "={{ $('Buscar Configurações Cliente').item.json.configuracoes.pipeline_id }}"
+            },
+            {
+              "name": "filter[custom_fields_values]",
+              "value": "={{ $json.webhook_data.phone || $json.phone }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $('Buscar Configurações Cliente').item.json.configuracoes.kommo_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "buscar-lead-kommo",
+      "name": "Buscar Lead no Kommo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "model": "={{ $('Buscar Configurações Cliente').item.json.configuracoes.chatgpt_model || 'gpt-4' }}",
+        "messages": {
+          "messageValues": [
+            {
+              "role": "system",
+              "content": "={{ $('Buscar Configurações Cliente').item.json.configuracoes.prompt_agente_ia || 'Você é um assistente de vendas inteligente.' }}"
+            },
+            {
+              "role": "user", 
+              "content": "={{ $json.webhook_data.message || $json.message }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 1000
+        }
+      },
+      "id": "processar-ia",
+      "name": "Processar com IA",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "chatgpt-dinamico",
+          "name": "ChatGPT Dinâmico"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "verificar-tag",
+              "leftValue": "={{ $json.response }}",
+              "rightValue": "transfere_vendedor|transfere_suporte|transfere_ligacao",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "verificar-tags-acao",
+      "name": "Verificar Tags de Ação",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair tag da resposta da IA\nconst response = $input.item.json.response;\nconst configuracoes = $('Buscar Configurações Cliente').item.json.configuracoes;\nconst tagsPermitidas = $('Buscar Configurações Cliente').item.json.tags_permitidas;\n\n// Buscar qual tag foi mencionada\nlet tagEncontrada = null;\nlet funil_id = null;\nlet pipeline_id = null;\n\nfor (const tag of tagsPermitidas) {\n  if (response.toLowerCase().includes(tag.toLowerCase())) {\n    tagEncontrada = tag;\n    // Buscar configurações da tag específica\n    // Aqui você pode fazer uma chamada adicional para buscar funil_id e pipeline_id da tag\n    break;\n  }\n}\n\nreturn {\n  tag_encontrada: tagEncontrada,\n  funil_id: funil_id,\n  pipeline_id: pipeline_id,\n  lead_id: $('Buscar Lead no Kommo').item.json._embedded?.leads?.[0]?.id,\n  response_ia: response\n};"
+      },
+      "id": "processar-tag",
+      "name": "Processar Tag",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Buscar Configurações Cliente').item.json.configuracoes.kommo_domain }}/api/v4/leads/{{ $json.lead_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "kommoApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "pipeline_id",
+              "value": "={{ $json.pipeline_id }}"
+            },
+            {
+              "name": "status_id",
+              "value": "={{ $json.funil_id }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $('Buscar Configurações Cliente').item.json.configuracoes.kommo_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "atualizar-lead-kommo",
+      "name": "Atualizar Lead no Kommo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1780,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.webhook_data.callback_url || 'https://api.whatsapp.com/send' }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $json.webhook_data.phone || $json.phone }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Processar com IA').item.json.response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "enviar-resposta",
+      "name": "Enviar Resposta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1560,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "model": "whisper-1",
+        "options": {}
+      },
+      "id": "processar-audio",
+      "name": "Processar Áudio",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        900,
+        500
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "chatgpt-dinamico",
+          "name": "ChatGPT Dinâmico"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-vision-preview",
+        "messages": {
+          "messageValues": [
+            {
+              "role": "system",
+              "content": "={{ $('Buscar Configurações Cliente').item.json.configuracoes.prompt_imagem || 'Descreva esta imagem detalhadamente.' }}"
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "={{ $json.webhook_data.image_url || $json.image_url }}"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "processar-imagem",
+      "name": "Processar Imagem",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        900,
+        600
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "chatgpt-dinamico",
+          "name": "ChatGPT Dinâmico"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "tipo-mensagem",
+              "leftValue": "={{ $json.webhook_data.message_type || $json.message_type }}",
+              "rightValue": "audio",
+              "operator": {
+                "type": "string",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "verificar-tipo-audio",
+      "name": "É Áudio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "tipo-mensagem",
+              "leftValue": "={{ $json.webhook_data.message_type || $json.message_type }}",
+              "rightValue": "image",
+              "operator": {
+                "type": "string",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "verificar-tipo-imagem",
+      "name": "É Imagem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Inicial": {
+      "main": [
+        [
+          {
+            "node": "Buscar Configurações Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Configurações Cliente": {
+      "main": [
+        [
+          {
+            "node": "Verificar N8N Habilitado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar N8N Habilitado": {
+      "main": [
+        [
+          {
+            "node": "Buscar Lead no Kommo",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "É Áudio?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "É Imagem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Lead no Kommo": {
+      "main": [
+        [
+          {
+            "node": "Processar com IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar com IA": {
+      "main": [
+        [
+          {
+            "node": "Verificar Tags de Ação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Tags de Ação": {
+      "main": [
+        [
+          {
+            "node": "Processar Tag",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Tag": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Lead no Kommo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Lead no Kommo": {
+      "main": [
+        [
+          {
+            "node": "Enviar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É Áudio?": {
+      "main": [
+        [
+          {
+            "node": "Processar Áudio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É Imagem?": {
+      "main": [
+        [
+          {
+            "node": "Processar Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Áudio": {
+      "main": [
+        [
+          {
+            "node": "Processar com IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Imagem": {
+      "main": [
+        [
+          {
+            "node": "Processar com IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-09T00:00:00.000Z",
+      "updatedAt": "2025-01-09T00:00:00.000Z",
+      "id": "sdr-ia-dinamico",
+      "name": "SDR IA Dinâmico"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-01-09T00:00:00.000Z",
+  "versionId": "dinamico-v1"
+}
+

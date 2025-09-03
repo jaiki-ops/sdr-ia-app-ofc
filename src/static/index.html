@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDR IA - Sistema de Automação Inteligente</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 1200px;
+            min-height: 600px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e1e5e9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #e1e5e9;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-card p {
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .webhook-info {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            border: 1px solid #b3d9ff;
+        }
+
+        .webhook-url {
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+        }
+
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .config-section h4 {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        .tag-item {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            background: white;
+        }
+
+        .tag-actions {
+            margin-top: 5px;
+        }
+
+        .tag-actions button {
+            margin-right: 5px;
+            padding: 4px 8px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SDR IA</h1>
+            <p>Sistema de Automação Inteligente</p>
+        </div>
+
+        <div class="content">
+            <!-- Tela de Login -->
+            <div id="loginForm">
+                <div id="alertContainer"></div>
+                
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" placeholder="seu@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha:</label>
+                    <input type="password" id="senha" placeholder="Sua senha" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="tipoUsuario">Tipo de Usuário:</label>
+                    <select id="tipoUsuario">
+                        <option value="cliente">Cliente</option>
+                        <option value="administrador">Administrador</option>
+                    </select>
+                </div>
+
+                <button class="btn" onclick="login()">Entrar</button>
+
+                <p style="text-align: center; margin-top: 20px;">
+                    Não tem conta? <a href="#" class="link" onclick="showCadastro()">Cadastre-se</a>
+                </p>
+            </div>
+
+            <!-- Tela de Cadastro -->
+            <div id="cadastroForm" class="hidden">
+                <div id="alertContainerCadastro"></div>
+                
+                <div class="form-group">
+                    <label for="nomeCompleto">Nome Completo:</label>
+                    <input type="text" id="nomeCompleto" placeholder="Seu nome completo" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="emailCadastro">Email:</label>
+                    <input type="email" id="emailCadastro" placeholder="seu@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="telefone">Telefone:</label>
+                    <input type="tel" id="telefone" placeholder="(11) 99999-9999">
+                </div>
+
+                <div class="form-group">
+                    <label for="empresa">Empresa:</label>
+                    <input type="text" id="empresa" placeholder="Nome da empresa">
+                </div>
+
+                <div class="form-group">
+                    <label for="cnpj">CNPJ:</label>
+                    <input type="text" id="cnpj" placeholder="00.000.000/0000-00">
+                </div>
+
+                <div class="form-group">
+                    <label for="razaoSocial">Razão Social:</label>
+                    <input type="text" id="razaoSocial" placeholder="Razão social da empresa">
+                </div>
+
+                <div class="form-group">
+                    <label for="senhaCadastro">Senha:</label>
+                    <input type="password" id="senhaCadastro" placeholder="Sua senha" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmarSenha">Confirmar Senha:</label>
+                    <input type="password" id="confirmarSenha" placeholder="Confirme sua senha" required>
+                </div>
+
+                <button class="btn" onclick="cadastrar()">Cadastrar</button>
+
+                <p style="text-align: center; margin-top: 20px;">
+                    Já tem conta? <a href="#" class="link" onclick="showLogin()">Faça login</a>
+                </p>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="hidden">
+                <div class="dashboard-header">
+                    <h2 id="dashboardTitle">Dashboard</h2>
+                    <button class="btn btn-secondary" onclick="logout()">Sair</button>
+                </div>
+                
+                <div id="dashboardContent">
+                    <!-- Painel do Cliente -->
+                    <div id="clienteDashboard" class="hidden">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h3><span id="clienteEventosUtilizados">-</span></h3>
+                                <p>Eventos Utilizados</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3><span id="clienteLimiteTotal">-</span></h3>
+                                <p>Limite Total de Eventos</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3><span id="clienteTotalTags">-</span></h3>
+                                <p>Total de Tags</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3><span id="clienteTagsAtivas">-</span></h3>
+                                <p>Tags Ativas</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Configurações do Cliente -->
+                        <div style="margin-top: 30px;">
+                            <h3>Configurações</h3>
+                            
+                            <!-- Kommo CRM -->
+                            <div class="config-section">
+                                <h4>Kommo CRM</h4>
+                                <div class="form-group">
+                                    <label>Token do Kommo:</label>
+                                    <input type="text" id="kommoToken" placeholder="Token de acesso do Kommo">
+                                </div>
+                                <div class="form-group">
+                                    <label>Domínio do Kommo:</label>
+                                    <input type="text" id="kommoDomain" placeholder="exemplo.kommo.com">
+                                </div>
+                                <div class="form-group">
+                                    <label>Pipeline ID:</label>
+                                    <input type="text" id="pipelineId" placeholder="ID do Pipeline">
+                                </div>
+                            </div>
+                            
+                            <!-- ChatGPT -->
+                            <div class="config-section">
+                                <h4>ChatGPT</h4>
+                                <div class="form-group">
+                                    <label>API Key do ChatGPT:</label>
+                                    <input type="password" id="chatgptApiKey" placeholder="sk-...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Modelo:</label>
+                                    <select id="chatgptModel">
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                        <option value="gpt-4">GPT-4</option>
+                                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Prompts -->
+                            <div class="config-section">
+                                <h4>Prompts Personalizados</h4>
+                                <div class="form-group">
+                                    <label>Prompt para Agente IA:</label>
+                                    <textarea id="promptAgenteIA" rows="3" placeholder="Prompt para o agente de IA..."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Prompt para Entender Áudio:</label>
+                                    <textarea id="promptAudio" rows="3" placeholder="Prompt para processamento de áudio..."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Prompt para Leitura de Imagem:</label>
+                                    <textarea id="promptImagem" rows="3" placeholder="Prompt para análise de imagens..."></textarea>
+                                </div>
+                            </div>
+                            
+                            <!-- Configurações Gerais -->
+                            <div class="config-section">
+                                <h4>Configurações Gerais</h4>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="aprovacaoAutomatica"> 
+                                        Habilitar aprovação automática de cadastros
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="usarN8N"> 
+                                        Usar N8N (Switch de funil)
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Tags -->
+                            <div class="config-section">
+                                <h4>Tags</h4>
+                                <div id="tagsContainer">
+                                    <p>Carregando tags...</p>
+                                </div>
+                                <button class="btn btn-success" onclick="adicionarTag()" style="margin-top: 10px;">Adicionar Tag</button>
+                            </div>
+                            
+                            <!-- Botão Salvar -->
+                            <button class="btn" onclick="salvarConfiguracoes()">Salvar Configurações</button>
+                        </div>
+                        
+                        <div class="webhook-info">
+                            <h4>Webhook para N8N:</h4>
+                            <p class="webhook-url" id="clienteWebhookUrl">Carregando...</p>
+                            <p>Copie e cole este URL no seu workflow do N8N.</p>
+                        </div>
+                    </div>
+
+                    <!-- Painel do Administrador -->
+                    <div id="adminDashboard" class="hidden">
+                        <h3>Lista de Clientes</h3>
+                        <div id="clientesContainer">
+                            <p>Carregando clientes...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let userType = null;
+
+        // Verificar se já está logado
+        window.onload = function() {
+            checkAuth();
+        };
+
+        function checkAuth() {
+            fetch('/api/auth/verificar-sessao', {
+                credentials: 'include'
+            }).then(response => response.json())
+            .then(data => {
+                if (data.logado) {
+                    currentUser = data.usuario;
+                    userType = data.tipo;
+                    showDashboard();
+                } else {
+                    showLogin();
+                }
+            }).catch(error => {
+                console.error('Erro ao verificar sessão:', error);
+                showLogin();
+            });
+        }
+
+        function showAlert(message, type = 'error', containerId = 'alertContainer') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="alert alert-${type === 'success' ? 'success' : 'error'}">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        function showLogin() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('cadastroForm').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        function showCadastro() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('cadastroForm').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('cadastroForm').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            
+            // Esconder todos os dashboards
+            document.getElementById('clienteDashboard').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.add('hidden');
+            
+            // Mostrar dashboard apropriado
+            if (userType === 'cliente') {
+                document.getElementById('dashboardTitle').textContent = `Dashboard - Cliente (${currentUser.nome})`;
+                document.getElementById('clienteDashboard').classList.remove('hidden');
+                loadClienteDashboard();
+            } else if (userType === 'administrador') {
+                document.getElementById('dashboardTitle').textContent = `Dashboard - Administrador (${currentUser.nome})`;
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                loadClientesAdmin();
+            }
+        }
+
+        function login() {
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const tipo = document.getElementById('tipoUsuario').value;
+
+            if (!email || !senha) {
+                showAlert('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    email: email,
+                    senha: senha,
+                    tipo: tipo
+                })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    currentUser = data.usuario;
+                    userType = data.tipo;
+                    showAlert('Login realizado com sucesso!', 'success');
+                    setTimeout(() => showDashboard(), 1000);
+                } else {
+                    showAlert(data.erro || 'Erro no login');
+                }
+            }).catch(error => {
+                console.error('Erro no login:', error);
+                showAlert('Erro de conexão');
+            });
+        }
+
+        function cadastrar() {
+            const nome = document.getElementById('nomeCompleto').value;
+            const email = document.getElementById('emailCadastro').value;
+            const telefone = document.getElementById('telefone').value;
+            const empresa = document.getElementById('empresa').value;
+            const cnpj = document.getElementById('cnpj').value;
+            const razaoSocial = document.getElementById('razaoSocial').value;
+            const senha = document.getElementById('senhaCadastro').value;
+            const confirmarSenha = document.getElementById('confirmarSenha').value;
+
+            if (!nome || !email || !senha || !confirmarSenha) {
+                showAlert('Por favor, preencha todos os campos obrigatórios.', 'error', 'alertContainerCadastro');
+                return;
+            }
+
+            if (senha !== confirmarSenha) {
+                showAlert('As senhas não coincidem.', 'error', 'alertContainerCadastro');
+                return;
+            }
+
+            fetch('/api/auth/cadastro', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    nome: nome,
+                    email: email,
+                    telefone: telefone,
+                    empresa: empresa,
+                    cnpj: cnpj,
+                    razao_social: razaoSocial,
+                    senha: senha
+                })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    showAlert('Cadastro realizado com sucesso! Aguarde aprovação do administrador.', 'success', 'alertContainerCadastro');
+                    setTimeout(() => showLogin(), 2000);
+                } else {
+                    showAlert(data.erro || 'Erro no cadastro', 'error', 'alertContainerCadastro');
+                }
+            }).catch(error => {
+                console.error('Erro no cadastro:', error);
+                showAlert('Erro de conexão', 'error', 'alertContainerCadastro');
+            });
+        }
+
+        function loadClienteDashboard() {
+            // Carregar estatísticas
+            fetch('/api/cliente/estatisticas', {
+                credentials: 'include'
+            }).then(response => response.json())
+            .then(data => {
+                if (data.eventos) {
+                    document.getElementById('clienteEventosUtilizados').textContent = data.eventos.utilizados || 0;
+                    document.getElementById('clienteLimiteTotal').textContent = data.eventos.limite_total === -1 ? 'Ilimitado' : (data.eventos.limite_total || 0);
+                }
+                if (data.tags) {
+                    document.getElementById('clienteTotalTags').textContent = data.tags.total || 0;
+                    document.getElementById('clienteTagsAtivas').textContent = data.tags.ativas || 0;
+                }
+                if (data.webhook_url) {
+                    document.getElementById('clienteWebhookUrl').textContent = data.webhook_url;
+                }
+            }).catch(error => {
+                console.error('Erro ao carregar estatísticas:', error);
+            });
+
+            // Carregar configurações
+            fetch('/api/cliente/configuracoes', {
+                credentials: 'include'
+            }).then(response => response.json())
+            .then(data => {
+                document.getElementById('kommoToken').value = data.kommo_token || '';
+                document.getElementById('kommoDomain').value = data.kommo_domain || '';
+                document.getElementById('pipelineId').value = data.pipeline_id || '';
+                document.getElementById('chatgptApiKey').value = data.chatgpt_api_key || '';
+                document.getElementById('chatgptModel').value = data.chatgpt_model || 'gpt-3.5-turbo';
+                document.getElementById('promptAgenteIA').value = data.prompt_agente_ia || '';
+                document.getElementById('promptAudio').value = data.prompt_audio || '';
+                document.getElementById('promptImagem').value = data.prompt_imagem || '';
+                document.getElementById('aprovacaoAutomatica').checked = data.aprovacao_automatica || false;
+                document.getElementById('usarN8N').checked = data.usar_n8n || false;
+            }).catch(error => {
+                console.error('Erro ao carregar configurações:', error);
+            });
+
+            // Carregar tags
+            loadTags();
+        }
+
+        function loadTags() {
+            fetch('/api/cliente/tags', {
+                credentials: 'include'
+            }).then(response => response.json())
+            .then(tags => {
+                const container = document.getElementById('tagsContainer');
+                if (tags.length === 0) {
+                    container.innerHTML = '<p>Nenhuma tag criada ainda.</p>';
+                } else {
+                    container.innerHTML = tags.map(tag => `
+                        <div class="tag-item">
+                            <strong>${tag.nome}</strong> 
+                            <span style="color: ${tag.ativa ? '#28a745' : '#dc3545'};">(${tag.ativa ? 'Ativa' : 'Inativa'})</span>
+                            <br>
+                            <small>Funil ID: ${tag.funil_id} | Pipeline ID: ${tag.pipeline_id}</small>
+                            <div class="tag-actions">
+                                <button class="btn-warning" onclick="editarTag(${tag.id})">Editar</button>
+                                <button class="btn-danger" onclick="deletarTag(${tag.id})">Deletar</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }).catch(error => {
+                console.error('Erro ao carregar tags:', error);
+                document.getElementById('tagsContainer').innerHTML = '<p>Erro ao carregar tags.</p>';
+            });
+        }
+
+        function salvarConfiguracoes() {
+            const configuracoes = {
+                kommo_token: document.getElementById('kommoToken').value,
+                kommo_domain: document.getElementById('kommoDomain').value,
+                pipeline_id: document.getElementById('pipelineId').value,
+                chatgpt_api_key: document.getElementById('chatgptApiKey').value,
+                chatgpt_model: document.getElementById('chatgptModel').value,
+                prompt_agente_ia: document.getElementById('promptAgenteIA').value,
+                prompt_audio: document.getElementById('promptAudio').value,
+                prompt_imagem: document.getElementById('promptImagem').value,
+                aprovacao_automatica: document.getElementById('aprovacaoAutomatica').checked,
+                usar_n8n: document.getElementById('usarN8N').checked
+            };
+
+            fetch('/api/cliente/configuracoes', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(configuracoes)
+            }).then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    showAlert('Configurações salvas com sucesso!', 'success');
+                } else {
+                    showAlert(data.erro || 'Erro ao salvar configurações', 'error');
+                }
+            }).catch(error => {
+                console.error('Erro ao salvar configurações:', error);
+                showAlert('Erro ao salvar configurações', 'error');
+            });
+        }
+
+        function adicionarTag() {
+            const nome = prompt('Nome da tag (ex: transfere_vendedor):');
+            if (!nome) return;
+
+            const funilId = prompt('ID do Funil:');
+            if (!funilId) return;
+
+            const pipelineId = prompt('ID do Pipeline:');
+            if (!pipelineId) return;
+
+            const tag = {
+                nome: nome,
+                funil_id: funilId,
+                pipeline_id: pipelineId,
+                ativa: true
+            };
+
+            fetch('/api/cliente/tags', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(tag)
+            }).then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    showAlert('Tag criada com sucesso!', 'success');
+                    loadTags();
+                } else {
+                    showAlert(data.erro || 'Erro ao criar tag', 'error');
+                }
+            }).catch(error => {
+                console.error('Erro ao criar tag:', error);
+                showAlert('Erro ao criar tag', 'error');
+            });
+        }
+
+        function editarTag(tagId) {
+            alert(`Funcionalidade de edição da tag ${tagId} será implementada em breve.`);
+        }
+
+        function deletarTag(tagId) {
+            if (confirm('Tem certeza que deseja deletar esta tag?')) {
+                fetch(`/api/cliente/tags/${tagId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.sucesso) {
+                        showAlert('Tag deletada com sucesso!', 'success');
+                        loadTags();
+                    } else {
+                        showAlert(data.erro || 'Erro ao deletar tag', 'error');
+                    }
+                }).catch(error => {
+                    console.error('Erro ao deletar tag:', error);
+                    showAlert('Erro ao deletar tag', 'error');
+                });
+            }
+        }
+
+        function loadClientesAdmin() {
+            fetch('/api/admin/clientes', {
+                credentials: 'include'
+            }).then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('clientesContainer');
+                if (data.clientes && data.clientes.length > 0) {
+                    container.innerHTML = `
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Empresa</th>
+                                    <th>CNPJ</th>
+                                    <th>Aprovado</th>
+                                    <th>Ativo</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.clientes.map(cliente => `
+                                    <tr>
+                                        <td>${cliente.id}</td>
+                                        <td>${cliente.nome}</td>
+                                        <td>${cliente.email}</td>
+                                        <td>${cliente.empresa || '-'}</td>
+                                        <td>${cliente.cnpj || '-'}</td>
+                                        <td>${cliente.aprovado ? 'Sim' : 'Não'}</td>
+                                        <td>${cliente.ativo ? 'Sim' : 'Não'}</td>
+                                        <td>
+                                            <button class="btn-warning" onclick="editarCliente(${cliente.id})">Editar</button>
+                                            ${!cliente.aprovado ? `<button class="btn-success" onclick="aprovarCliente(${cliente.id})">Aprovar</button>` : ''}
+                                            ${cliente.ativo ? `<button class="btn-danger" onclick="desativarCliente(${cliente.id})">Desativar</button>` : `<button class="btn-success" onclick="reativarCliente(${cliente.id})">Reativar</button>`}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    container.innerHTML = '<p>Nenhum cliente encontrado.</p>';
+                }
+            }).catch(error => {
+                console.error('Erro ao carregar clientes:', error);
+                document.getElementById('clientesContainer').innerHTML = '<p>Erro ao carregar clientes.</p>';
+            });
+        }
+
+        function aprovarCliente(id) {
+            if (confirm('Tem certeza que deseja aprovar este cliente?')) {
+                fetch(`/api/admin/clientes/${id}/aprovar`, {
+                    method: 'POST',
+                    credentials: 'include'
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.sucesso) {
+                        showAlert('Cliente aprovado com sucesso!', 'success');
+                        loadClientesAdmin();
+                    } else {
+                        showAlert(data.erro || 'Erro ao aprovar cliente', 'error');
+                    }
+                }).catch(error => {
+                    console.error('Erro ao aprovar cliente:', error);
+                    showAlert('Erro ao aprovar cliente', 'error');
+                });
+            }
+        }
+
+        function desativarCliente(id) {
+            if (confirm('Tem certeza que deseja desativar este cliente?')) {
+                fetch(`/api/admin/clientes/${id}/desativar`, {
+                    method: 'POST',
+                    credentials: 'include'
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.sucesso) {
+                        showAlert('Cliente desativado com sucesso!', 'success');
+                        loadClientesAdmin();
+                    } else {
+                        showAlert(data.erro || 'Erro ao desativar cliente', 'error');
+                    }
+                }).catch(error => {
+                    console.error('Erro ao desativar cliente:', error);
+                    showAlert('Erro ao desativar cliente', 'error');
+                });
+            }
+        }
+
+        function reativarCliente(id) {
+            if (confirm('Tem certeza que deseja reativar este cliente?')) {
+                fetch(`/api/admin/clientes/${id}/reativar`, {
+                    method: 'POST',
+                    credentials: 'include'
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.sucesso) {
+                        showAlert('Cliente reativado com sucesso!', 'success');
+                        loadClientesAdmin();
+                    } else {
+                        showAlert(data.erro || 'Erro ao reativar cliente', 'error');
+                    }
+                }).catch(error => {
+                    console.error('Erro ao reativar cliente:', error);
+                    showAlert('Erro ao reativar cliente', 'error');
+                });
+            }
+        }
+
+        function editarCliente(id) {
+            alert(`Funcionalidade de edição para o cliente ${id} será implementada em breve.`);
+        }
+
+        function logout() {
+            if (confirm('Tem certeza que deseja sair?')) {
+                fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                }).then(response => {
+                    if (response.ok) {
+                        currentUser = null;
+                        userType = null;
+                        showAlert('Logout realizado com sucesso!', 'success');
+                        setTimeout(() => showLogin(), 1000);
+                    } else {
+                        currentUser = null;
+                        userType = null;
+                        showLogin();
+                    }
+                }).catch(error => {
+                    console.error('Erro no logout:', error);
+                    currentUser = null;
+                    userType = null;
+                    showLogin();
+                });
+            }
+        }
+    </script>
+</body>
+</html>
+

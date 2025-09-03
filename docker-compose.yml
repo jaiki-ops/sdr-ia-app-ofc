@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  sdr-ia-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sdr_ia_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-sdr-ia-secret-key-production-change-me}
+      - FLASK_ENV=production
+      - DATABASE_URL=sqlite:///src/database/app.db
+    volumes:
+      # Volume persistente para o banco de dados
+      - sdr_ia_data:/app/src/database
+      # Volume para logs (opcional)
+      - sdr_ia_logs:/app/logs
+    networks:
+      - sdr_ia_network
+    labels:
+      # Labels para Traefik (se estiver usando)
+      - "traefik.enable=true"
+      - "traefik.http.routers.sdr-ia.rule=Host(`sdria.alveseco.com.br`)"
+      - "traefik.http.routers.sdr-ia.entrypoints=websecure"
+      - "traefik.http.routers.sdr-ia.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sdr-ia.loadbalancer.server.port=5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Serviço opcional de backup do banco de dados
+  backup:
+    image: alpine:latest
+    container_name: sdr_ia_backup
+    restart: "no"
+    volumes:
+      - sdr_ia_data:/data:ro
+      - ./backups:/backups
+    command: >
+      sh -c "
+        mkdir -p /backups &&
+        tar -czf /backups/sdr_ia_backup_$$(date +%Y%m%d_%H%M%S).tar.gz -C /data . &&
+        find /backups -name '*.tar.gz' -mtime +7 -delete
+      "
+    profiles:
+      - backup
+
+volumes:
+  sdr_ia_data:
+    driver: local
+  sdr_ia_logs:
+    driver: local
+
+networks:
+  sdr_ia_network:
+    driver: bridge
+
