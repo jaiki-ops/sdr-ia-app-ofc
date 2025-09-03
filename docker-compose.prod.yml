@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  sdr-ia-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sdr_ia_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # Variáveis obrigatórias (definir no Portainer)
+      - SECRET_KEY=${SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      
+      # Variáveis opcionais
+      - N8N_BASE_URL=${N8N_BASE_URL:-}
+      - N8N_API_KEY=${N8N_API_KEY:-}
+      - APP_BASE_URL=${APP_BASE_URL:-https://sdria.alveseco.com.br}
+      
+      # Configurações Flask
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      
+    volumes:
+      # Volume persistente para banco de dados
+      - sdr_ia_data:/app/src/database
+      # Volume para logs
+      - sdr_ia_logs:/app/logs
+      
+    networks:
+      - sdr_ia_network
+      
+    labels:
+      # Labels para Traefik (proxy reverso)
+      - "traefik.enable=true"
+      - "traefik.http.routers.sdr-ia.rule=Host(`sdria.alveseco.com.br`)"
+      - "traefik.http.routers.sdr-ia.entrypoints=websecure"
+      - "traefik.http.routers.sdr-ia.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sdr-ia.loadbalancer.server.port=5000"
+      
+      # Labels para organização
+      - "com.docker.compose.project=sdr-ia"
+      - "com.docker.compose.service=app"
+      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      
+    # Limites de recursos (ajustar conforme necessário)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Serviço de backup automático (opcional)
+  backup:
+    image: alpine:latest
+    container_name: sdr_ia_backup
+    restart: "no"
+    volumes:
+      - sdr_ia_data:/data:ro
+      - ./backups:/backups
+    command: >
+      sh -c "
+        echo 'Iniciando backup...' &&
+        mkdir -p /backups &&
+        tar -czf /backups/sdr_ia_backup_$$(date +%Y%m%d_%H%M%S).tar.gz -C /data . &&
+        echo 'Backup criado com sucesso!' &&
+        find /backups -name '*.tar.gz' -mtime +7 -delete &&
+        echo 'Backups antigos removidos.'
+      "
+    profiles:
+      - backup
+    networks:
+      - sdr_ia_network
+
+volumes:
+  sdr_ia_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/sdr-ia/data
+  sdr_ia_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/sdr-ia/logs
+
+networks:
+  sdr_ia_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+

@@ -7,15 +7,13 @@ ENV PYTHONUNBUFFERED=1
 ENV FLASK_APP=src/main.py
 ENV FLASK_ENV=production
 
-# Criar usuário não-root para segurança
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
 # Definir diretório de trabalho
 WORKDIR /app
 
-# Instalar dependências do sistema
+# Instalar dependências do sistema necessárias
 RUN apt-get update && apt-get install -y \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar arquivo de requisitos primeiro (para cache do Docker)
@@ -26,14 +24,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copiar código da aplicação
-COPY . .
+COPY src/ ./src/
+COPY n8n-workflows/ ./n8n-workflows/
 
-# Criar diretório para banco de dados
-RUN mkdir -p src/database && \
-    chown -R appuser:appuser /app
-
-# Mudar para usuário não-root
-USER appuser
+# Criar diretórios necessários
+RUN mkdir -p src/database logs
 
 # Expor porta
 EXPOSE 5000
