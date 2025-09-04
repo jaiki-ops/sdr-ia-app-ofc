@@ -35,7 +35,7 @@ EXPOSE 5000
 
 # Comando de saúde para verificar se a aplicação está funcionando
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/ || exit 1
+    CMD curl -f http://localhost:5010/ || exit 1
 
 # Comando para iniciar a aplicação
 CMD ["python", "src/main.py"]
