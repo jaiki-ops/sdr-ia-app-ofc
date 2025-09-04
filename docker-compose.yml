@@ -2,13 +2,15 @@ version: '3.8'
 
 services:
   sdr-ia-app:
-    # --- ALTERAÇÃO PRINCIPAL ---
-    # Remova a linha "image:" e adicione "build: ."
-    # Isso diz ao Docker para construir uma imagem usando o Dockerfile
-    # que está na mesma pasta (na raiz do seu projeto Git).
-    build: .
-    # Você pode opcionalmente dar um nome para a imagem construída
-    # image: jaiki-ops/sdr-ia-app-ofc:latest
+    # Use a imagem que você enviou para o registro. A chave 'build' foi removida.
+    image: jaiki-ops/sdr-ia-app-ofc:1.0
+    
+    # 'container_name' e 'restart' foram removidos.
+    # As configurações do Swarm são colocadas dentro da chave 'deploy'.
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure # Reiniciar em caso de falha
 
     container_name: sdr_ia_app
     restart: unless-stopped
