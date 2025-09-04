@@ -1,12 +1,16 @@
 version: '3.8'
 
 services:
-  sdr-ia-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: sdr_ia_app
-    restart: unless-stopped
+  app:
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      sh -c "
+        apt-get update && apt-get install -y gcc curl &&
+        pip install --no-cache-dir -r requirements.txt &&
+        mkdir -p src/database logs &&
+        python src/main.py
+      "
     ports:
       - "5000:5000"
     environment:
@@ -17,7 +21,7 @@ services:
       # Variáveis opcionais
       - N8N_BASE_URL=
       - N8N_API_KEY=
-      - APP_BASE_URL=http://localhost:5000
+      - APP_BASE_URL=https://sdria.alveseco.com.br
       
       # Configurações Flask
       - FLASK_ENV=production
@@ -30,21 +34,23 @@ services:
       - sdr_ia_data:/app/src/database
       # Volume para logs (opcional)
       - sdr_ia_logs:/app/logs
+      # Mapear código fonte
+      - .:/app
       
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
 
 volumes:
   sdr_ia_data:
     driver: local
   sdr_ia_logs:
     driver: local
-
-networks:
-  default:
-    driver: bridge
-
