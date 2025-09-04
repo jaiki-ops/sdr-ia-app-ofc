@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  sdr-ia-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sdr_ia_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # Variáveis obrigatórias - DEFINIR NO PORTAINER
+      - SECRET_KEY=sdr-ia-secret-key-change-in-production-123456789
+      - OPENAI_API_KEY=sua-chave-openai-aqui
+      
+      # Variáveis opcionais
+      - N8N_BASE_URL=
+      - N8N_API_KEY=
+      - APP_BASE_URL=http://localhost:5000
+      
+      # Configurações Flask
+      - FLASK_ENV=production
+      - FLASK_DEBUG=false
+      - PYTHONUNBUFFERED=1
+      - PORT=5000
+      
+    volumes:
+      # Volume persistente para banco de dados
+      - sdr_ia_data:/app/src/database
+      # Volume para logs (opcional)
+      - sdr_ia_logs:/app/logs
+      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  sdr_ia_data:
+    driver: local
+  sdr_ia_logs:
+    driver: local
+
+networks:
+  default:
+    driver: bridge
+
