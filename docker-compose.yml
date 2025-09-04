@@ -6,7 +6,7 @@ services:
     # Removido o bloco "build:".
     # Substituído por "image:", que aponta para a imagem que VOCÊ VAI construir e enviar para o Docker Hub.
     # Use o nome do seu repositório do GitHub para manter a consistência.
-    image: SEU-USUARIO-DOCKERHUB/sdr-ia-app-ofc:1.0
+    image: jaiki-ops/sdr-ia-app-ofc:1.0
 
     container_name: sdr_ia_app
     restart: unless-stopped
@@ -16,7 +16,7 @@ services:
       - "5000:5000"
     environment:
       # É uma boa prática definir suas variáveis aqui.
-      - SECRET_KEY=troque-por-uma-chave-secreta-muito-longa-e-segura
+      - SECRET_KEY=1cc538969e26f20cebeaf36019362d61f4fa9f76d198a465
       - FLASK_ENV=production
     volumes:
       # O volume para o banco de dados está perfeito para persistir os dados.
@@ -26,7 +26,7 @@ services:
     # pode remover todo este bloco "labels:". Se usa, garanta que seu domínio está correto.
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sdr-ia.rule=Host(`sua-url.com`)"
+      - "traefik.http.routers.sdr-ia.rule=Host(`sdria.alveseco.com.br`)"
       - "traefik.http.routers.sdr-ia.entrypoints=websecure"
       - "traefik.http.routers.sdr-ia.tls.certresolver=letsencrypt"
       - "traefik.http.services.sdr-ia.loadbalancer.server.port=5000"
