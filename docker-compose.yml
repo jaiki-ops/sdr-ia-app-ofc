@@ -13,11 +13,12 @@ services:
     ports:
       # Mapeia a porta 5000 do seu servidor para a porta 5000 da aplicação.
       # Você poderá acessar sua app em http://IP_DO_SEU_SERVIDOR:5000
-      - "5000:5000"
+      - "5010:5010"
     environment:
       # É uma boa prática definir suas variáveis aqui.
       - SECRET_KEY=1cc538969e26f20cebeaf36019362d61f4fa9f76d198a465
       - FLASK_ENV=production
+      - OPENAI_API_KEY=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
     volumes:
       # O volume para o banco de dados está perfeito para persistir os dados.
       - sdr_ia_data:/app/database
@@ -29,7 +30,7 @@ services:
       - "traefik.http.routers.sdr-ia.rule=Host(`sdria.alveseco.com.br`)"
       - "traefik.http.routers.sdr-ia.entrypoints=websecure"
       - "traefik.http.routers.sdr-ia.tls.certresolver=letsencrypt"
-      - "traefik.http.services.sdr-ia.loadbalancer.server.port=5000"
+      - "traefik.http.services.sdr-ia.loadbalancer.server.port=5010"
 
   # Serviço opcional de backup do banco de dados
   backup:
