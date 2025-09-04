@@ -18,9 +18,9 @@ services:
       - "5010:5010"
     environment:
       # É uma boa prática definir suas variáveis aqui.
-      - SECRET_KEY=1cc538969e26f20cebeaf36019362d61f4fa9f76d198a465
+      - SECRET_KEY=
       - FLASK_ENV=production
-      - OPENAI_API_KEY=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
+      - OPENAI_API_KEY=
     volumes:
       # O volume para o banco de dados está perfeito para persistir os dados.
       - sdr_ia_data:/app/database
