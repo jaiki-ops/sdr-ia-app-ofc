@@ -2,58 +2,49 @@ version: '3.8'
 
 services:
   sdr-ia-app:
-    # Use a imagem que você enviou para o registro. A chave 'build' foi removida.
-    image: jaiki-ops/sdr-ia-app-ofc:1.0
-    
-    # 'container_name' e 'restart' foram removidos.
-    # As configurações do Swarm são colocadas dentro da chave 'deploy'.
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure # Reiniciar em caso de falha
-
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: sdr_ia_app
     restart: unless-stopped
     ports:
-      - "5010:5010"
+      - "5000:5000"
     environment:
-      # É uma boa prática definir suas variáveis aqui.
-      - SECRET_KEY=
+      # Variáveis obrigatórias - DEFINIR NO PORTAINER
+      - SECRET_KEY=sdr-ia-secret-key-change-in-production-123456789
+      - OPENAI_API_KEY=sua-chave-openai-aqui
+      
+      # Variáveis opcionais
+      - N8N_BASE_URL=
+      - N8N_API_KEY=
+      - APP_BASE_URL=http://localhost:5000
+      
+      # Configurações Flask
       - FLASK_ENV=production
-      - OPENAI_API_KEY=
+      - FLASK_DEBUG=false
+      - PYTHONUNBUFFERED=1
+      - PORT=5000
+      
     volumes:
-      # O volume para o banco de dados está perfeito para persistir os dados.
-      - sdr_ia_data:/app/database
-
-    # As labels do Traefik são para um reverse proxy. Se você não usa Traefik,
-    # pode remover todo este bloco "labels:". Se usa, garanta que seu domínio está correto.
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.sdr-ia.rule=Host(`sdria.alveseco.com.br`)"
-      - "traefik.http.routers.sdr-ia.entrypoints=websecure"
-      - "traefik.http.routers.sdr-ia.tls.certresolver=letsencrypt"
-      - "traefik.http.services.sdr-ia.loadbalancer.server.port=5010"
-
-  # Serviço opcional de backup do banco de dados
-  backup:
-    image: alpine:latest
-    container_name: sdr_ia_backup
-    volumes:
-      - sdr_ia_data:/data:ro
-      - ./backups:/backups
-    command: >
-      sh -c "
-        mkdir -p /backups &&
-        tar -czf /backups/sdr_ia_backup_$$(date +%Y%m%d_%H%M%S).tar.gz -C /data . &&
-        find /backups -name '*.tar.gz' -mtime +7 -delete
-      "
-    # --- CORREÇÃO DO ERRO ANTERIOR ---
-    # A propriedade "profiles:" foi removida para evitar o erro de sintaxe.
-    # Você pode rodar este serviço manualmente pelo Portainer se precisar de um backup.
+      # Volume persistente para banco de dados
+      - sdr_ia_data:/app/src/database
+      # Volume para logs (opcional)
+      - sdr_ia_logs:/app/logs
+      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   sdr_ia_data:
     driver: local
+  sdr_ia_logs:
+    driver: local
 
-# A rede não é estritamente necessária para um único serviço, mas é uma boa prática.
-# Removi para simplificar, mas você pode adicionar de volta se precisar.
+networks:
+  default:
+    driver: bridge
+
