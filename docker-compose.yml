@@ -2,17 +2,17 @@ version: '3.8'
 
 services:
   sdr-ia-app:
-    # --- MUDANÇA PRINCIPAL ---
-    # Removido o bloco "build:".
-    # Substituído por "image:", que aponta para a imagem que VOCÊ VAI construir e enviar para o Docker Hub.
-    # Use o nome do seu repositório do GitHub para manter a consistência.
-    image: jaiki-ops/sdr-ia-app-ofc:1.0
+    # --- ALTERAÇÃO PRINCIPAL ---
+    # Remova a linha "image:" e adicione "build: ."
+    # Isso diz ao Docker para construir uma imagem usando o Dockerfile
+    # que está na mesma pasta (na raiz do seu projeto Git).
+    build: .
+    # Você pode opcionalmente dar um nome para a imagem construída
+    # image: jaiki-ops/sdr-ia-app-ofc:latest
 
     container_name: sdr_ia_app
     restart: unless-stopped
     ports:
-      # Mapeia a porta 5000 do seu servidor para a porta 5000 da aplicação.
-      # Você poderá acessar sua app em http://IP_DO_SEU_SERVIDOR:5000
       - "5010:5010"
     environment:
       # É uma boa prática definir suas variáveis aqui.
